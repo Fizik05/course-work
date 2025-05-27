@@ -1,6 +1,7 @@
 import { DifferentialEquation } from './differential-equation.js';
 import { RungeKutta5 } from './runge-kutta.js';
 import { AdamsMoulton4 } from './adams-moulton.js';
+import { AnalyticalSolution } from './analytical-solution.js';
 
 export class Solver {
     static solve(params) {
@@ -10,6 +11,14 @@ export class Solver {
         // Создаем уравнение
         const equation = new DifferentialEquation(
             params.m, b, params.k, params.F0, params.omega
+        );
+        
+        // Решаем аналитически
+        const analyticalSolution = AnalyticalSolution.solve(
+            equation,
+            params.t0,
+            params.t1,
+            params.h
         );
         
         // Решаем РК5
@@ -31,28 +40,35 @@ export class Solver {
         
         return {
             equation,
+            analytical: analyticalSolution,
             rk5: rk5Solution,
             adamsMoulton: amSolution,
             dampingCoeff: b
         };
     }
     
-    static compareResults(rk5Solution, amSolution, precision) {
+    static compareResults(analyticalSolution, rk5Solution, amSolution, precision) {
         // Находим значение в середине временного промежутка
-        const midIndex = Math.floor(rk5Solution.length / 2);
+        // const midIndex = Math.floor(analyticalSolution.length / 2);
+        const midIndex = 600;
+        // const midIndex = rk5Solution.length - 2
         
+        const analyticalValue = analyticalSolution[midIndex][1][0];
         const rk5Value = rk5Solution[midIndex][1][0];
         const amValue = amSolution[midIndex][1][0];
-        const tMid = rk5Solution[midIndex][0];
+        const tMid = analyticalSolution[midIndex][0];
         
-        // РК5 как эталон
-        const deviation = Math.abs((amValue - rk5Value) / rk5Value * 100);
+        // Аналитическое решение как эталон
+        const rk5Deviation = Math.abs((rk5Value - analyticalValue) / analyticalValue * 100);
+        const amDeviation = Math.abs((amValue - analyticalValue) / analyticalValue * 100);
         
         return {
             tMid,
+            analyticalValue,
             rk5Value,
             amValue,
-            deviation
+            rk5Deviation,
+            amDeviation
         };
     }
 }

@@ -56,6 +56,7 @@ class Application {
             const results = Solver.solve(params);
             
             const comparison = Solver.compareResults(
+                results.analytical,
                 results.rk5, 
                 results.adamsMoulton, 
                 params.precision
@@ -77,14 +78,19 @@ class Application {
         const tbody = document.getElementById('comparison-tbody');
         tbody.innerHTML = `
             <tr>
+                <td>Аналитическое решение</td>
+                <td>${comparison.analyticalValue.toFixed(precision)}</td>
+                <td>0 (эталон)</td>
+            </tr>
+            <tr>
                 <td>Рунге-Кутты 5-го порядка</td>
                 <td>${comparison.rk5Value.toFixed(precision)}</td>
-                <td>0 (эталон)</td>
+                <td>${comparison.rk5Deviation.toFixed(4)}</td>
             </tr>
             <tr>
                 <td>Адамса-Мултона 4-го порядка</td>
                 <td>${comparison.amValue.toFixed(precision)}</td>
-                <td>${comparison.deviation.toFixed(4)}</td>
+                <td>${comparison.amDeviation.toFixed(4)}</td>
             </tr>
         `;
 
@@ -93,23 +99,30 @@ class Application {
             xValueHeader.textContent = `Значение x(${parseFloat(comparison.tMid.toFixed(precision))}), м`;
         }
         
-        this.plotResults(results.rk5, results.adamsMoulton);
+        this.plotResults(results.analytical, results.rk5, results.adamsMoulton);
         
         document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
         setTimeout(() => {
-            this.plotResults(results.rk5, results.adamsMoulton);
+            this.plotResults(results.analytical, results.rk5, results.adamsMoulton);
         }, 300);
     }
     
-    plotResults(rk5Solution, amSolution) {
+    plotResults(analyticalSolution, rk5Solution, amSolution) {
         const ctx = document.getElementById('solutionChart').getContext('2d');
         
         if (this.chart) {
             this.chart.destroy();
         }
 
-        const step = Math.max(1, Math.floor(rk5Solution.length / 1000));
+        const step = Math.max(1, Math.floor(analyticalSolution.length / 1000));
+        
+        const analyticalData = analyticalSolution
+            .filter((_, index) => index % step === 0)
+            .map(point => ({
+                x: point[0],
+                y: point[1][0]
+            }));
         
         const rk5Data = rk5Solution
             .filter((_, index) => index % step === 0)
@@ -130,6 +143,16 @@ class Application {
             data: {
                 datasets: [
                     {
+                        label: 'Аналитическое решение',
+                        data: analyticalData,
+                        borderColor: '#28a745',
+                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                        borderWidth: 3,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.1
+                    },
+                    {
                         label: 'Рунге-Кутты 5-го порядка',
                         data: rk5Data,
                         borderColor: '#667eea',
@@ -137,7 +160,8 @@ class Application {
                         borderWidth: 2,
                         pointRadius: 0,
                         fill: false,
-                        tension: 0.1
+                        tension: 0.1,
+                        borderDash: [3, 3]
                     },
                     {
                         label: 'Адамса-Мултона 4-го порядка',
