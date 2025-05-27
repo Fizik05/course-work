@@ -137,6 +137,20 @@ class Application {
                 x: point[0],
                 y: point[1][0]
             }));
+
+        const upBorder = rk5Solution
+            .filter((_, index) => index % step === 0)
+            .map(point => ({
+                x: point[0],
+                y: 0.04
+            }))
+
+        const downBorder = rk5Solution
+            .filter((_, index) => index % step === 0)
+            .map(point => ({
+                x: point[0],
+                y: -0.04
+            }))
         
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -173,6 +187,26 @@ class Application {
                         fill: false,
                         tension: 0.1,
                         borderDash: [5, 5]
+                    },
+                    {
+                        data: upBorder,
+                        borderColor: '#c90000',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.1,
+                        borderDash: [5, 5]
+                    },
+                    {
+                        data: downBorder,
+                        borderColor: '#c90000',
+                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        borderWidth: 2,
+                        pointRadius: 0,
+                        fill: false,
+                        tension: 0.1,
+                        borderDash: [5, 5]
                     }
                 ]
             },
@@ -196,11 +230,47 @@ class Application {
                         }
                     },
                     legend: {
-                        position: 'top'
+                        position: 'top',
+                        labels: {
+                            generateLabels: function(chart) {
+                                // Получаем стандартные метки легенды, которые Chart.js сгенерировал бы
+                                const originalLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
+                                const newLabels = [];
+
+                                // Добавляем метки для аналитического решения, Рунге-Кутты и Адамса-Мултона
+                                // Предполагается, что это первые три датасета (индексы 0, 1, 2)
+                                for (let i = 0; i < 3 && i < originalLabels.length; i++) {
+                                    newLabels.push(originalLabels[i]);
+                                }
+
+                                // Добавляем кастомную метку "Норматив"
+                                // Используем стили первой линии норматива (upBorder) для внешнего вида в легенде
+                                const upBorderDataset = chart.data.datasets[3]; // upBorder находится по индексу 3
+                                if (upBorderDataset) {
+                                    newLabels.push({
+                                        text: 'Норматив', // Текст метки в легенде
+                                        fillStyle: upBorderDataset.backgroundColor, // Цвет заливки (для квадратика)
+                                        strokeStyle: upBorderDataset.borderColor, // Цвет линии (для линии)
+                                        lineWidth: upBorderDataset.borderWidth, // Толщина линии
+                                        lineDash: upBorderDataset.borderDash, // Стиль пунктирной линии
+                                        hidden: false, // Метка не скрыта
+                                        // datasetIndex: -1 // Указываем, что эта метка не привязана к конкретному датасету
+                                                              // (чтобы клик по ней не скрывал конкретную линию)
+                                    });
+                                }
+                                return newLabels;
+                            }
+                        }
                     },
                     tooltip: {
                         callbacks: {
                             label: function(context) {
+                                // Модифицируем подсказку, чтобы для линий норматива было понятное название
+                                if (context.datasetIndex === 3) {
+                                    return `Верхний норматив: ${context.parsed.y.toFixed(6)} м`;
+                                } else if (context.datasetIndex === 4) {
+                                    return `Нижний норматив: ${context.parsed.y.toFixed(6)} м`;
+                                }
                                 return `${context.dataset.label}: ${context.parsed.y.toFixed(6)} м`;
                             }
                         }
@@ -246,8 +316,6 @@ class Application {
                 this.chart.update('none');
             }
         }, 100);
-
-        console.log('Chart initialized:', this.chart);
     }
 }
 
