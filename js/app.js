@@ -10,20 +10,91 @@ class Application {
     
     initializeEventListeners() {
         document.getElementById('solve-btn').addEventListener('click', () => {
-            this.solve();
+            if (this.validateInputs()) {
+                this.solve();
+            }
         });
         
-        const inputs = ['mass', 'stiffness', 'damping-ratio', 'force-amplitude', 'frequency'];
+        const inputs = ['mass', 'bridge-type', 'force-amplitude', 't-end', 'step', 'precision'];
         inputs.forEach(id => {
-            document.getElementById(id).addEventListener('input', () => {
-                this.updateCalculatedParams();
-            });
+            const element = document.getElementById(id);
+            if (element) {
+                element.addEventListener('input', () => {
+                    this.validateInputs();
+                    this.updateCalculatedParams();
+                });
+                element.addEventListener('change', () => {
+                    this.validateInputs();
+                    this.updateCalculatedParams();
+                });
+            }
         });
+    }
+    
+    validateInputs() {
+        let isValid = true;
+        
+        // Валидация массы
+        const mass = parseFloat(document.getElementById('mass').value);
+        const massValidation = document.getElementById('mass-validation');
+        if (isNaN(mass) || mass < 2000 || mass > 200000) {
+            massValidation.textContent = 'Масса должна быть от 2,000 до 200,000 кг';
+            isValid = false;
+        } else {
+            massValidation.textContent = '';
+        }
+        
+        // Валидация амплитуды силы
+        const force = parseFloat(document.getElementById('force-amplitude').value);
+        const forceValidation = document.getElementById('force-validation');
+        if (isNaN(force) || force < 0) {
+            forceValidation.textContent = 'Амплитуда силы не может быть отрицательной';
+            isValid = false;
+        } else {
+            forceValidation.textContent = '';
+        }
+        
+        // Валидация конечного времени
+        const tEnd = parseFloat(document.getElementById('t-end').value);
+        const tEndValidation = document.getElementById('t-end-validation');
+        if (isNaN(tEnd) || tEnd <= 0) {
+            tEndValidation.textContent = 'Конечное время должно быть положительным';
+            isValid = false;
+        } else {
+            tEndValidation.textContent = '';
+        }
+        
+        // Валидация шага времени
+        const step = parseFloat(document.getElementById('step').value);
+        const stepValidation = document.getElementById('step-validation');
+        const maxStep = (tEnd - 0) / 10;
+        if (isNaN(step) || step <= 0) {
+            stepValidation.textContent = 'Шаг времени должен быть положительным';
+            isValid = false;
+        } else if (step >= maxStep) {
+            stepValidation.textContent = `Шаг должен быть меньше ${maxStep.toFixed(4)}`;
+            isValid = false;
+        } else {
+            stepValidation.textContent = '';
+        }
+        
+        // Валидация точности
+        const precision = parseInt(document.getElementById('precision').value);
+        const precisionValidation = document.getElementById('precision-validation');
+        if (isNaN(precision) || precision < 0 || precision > 10) {
+            precisionValidation.textContent = 'Точность должна быть от 0 до 10';
+            isValid = false;
+        } else {
+            precisionValidation.textContent = '';
+        }
+        
+        return isValid;
     }
     
     updateCalculatedParams() {
         const params = this.getParameters();
-        const b = 2 * params.dampingRatio * Math.sqrt(params.k * params.m);
+        const zeta = 0.01; // Фиксированный коэффициент затухания
+        const b = 2 * zeta * Math.sqrt(params.k * params.m);
         
         document.getElementById('damping-coeff').textContent = b.toFixed(0);
         
@@ -34,11 +105,10 @@ class Application {
     getParameters() {
         return {
             m: parseFloat(document.getElementById('mass').value),
-            k: parseFloat(document.getElementById('stiffness').value),
-            dampingRatio: parseFloat(document.getElementById('damping-ratio').value),
+            k: parseFloat(document.getElementById('bridge-type').value),
             F0: parseFloat(document.getElementById('force-amplitude').value),
-            omega: parseFloat(document.getElementById('frequency').value),
-            t0: parseFloat(document.getElementById('t-start').value),
+            omega: 6.1, // Фиксированная частота
+            t0: 0, // Фиксированное начальное время
             t1: parseFloat(document.getElementById('t-end').value),
             h: parseFloat(document.getElementById('step').value),
             precision: parseInt(document.getElementById('precision').value)
@@ -100,12 +170,25 @@ class Application {
         }
         
         this.plotResults(results.analytical, results.rk5, results.adamsMoulton);
+        this.checkNormativeCompliance(results);
         
         document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
 
         setTimeout(() => {
             this.plotResults(results.analytical, results.rk5, results.adamsMoulton);
         }, 300);
+    }
+    
+    checkNormativeCompliance(results) {
+        // Проверяем превышение норматива ±0.04 м
+        const maxAmplitude = Math.max(...results.rk5.map(point => Math.abs(point[1][0])));
+        const recommendationsDiv = document.getElementById('recommendations');
+        
+        if (maxAmplitude > 0.04) {
+            recommendationsDiv.style.display = 'block';
+        } else {
+            recommendationsDiv.style.display = 'none';
+        }
     }
     
     plotResults(analyticalSolution, rk5Solution, amSolution) {
@@ -143,14 +226,14 @@ class Application {
             .map(point => ({
                 x: point[0],
                 y: 0.04
-            }))
+            }));
 
         const downBorder = rk5Solution
             .filter((_, index) => index % step === 0)
             .map(point => ({
                 x: point[0],
                 y: -0.04
-            }))
+            }));
         
         this.chart = new Chart(ctx, {
             type: 'line',
@@ -191,7 +274,7 @@ class Application {
                     {
                         data: upBorder,
                         borderColor: '#c90000',
-                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        backgroundColor: 'rgba(201, 0, 0, 0.1)',
                         borderWidth: 2,
                         pointRadius: 0,
                         fill: false,
@@ -201,7 +284,7 @@ class Application {
                     {
                         data: downBorder,
                         borderColor: '#c90000',
-                        backgroundColor: 'rgba(118, 75, 162, 0.1)',
+                        backgroundColor: 'rgba(201, 0, 0, 0.1)',
                         borderWidth: 2,
                         pointRadius: 0,
                         fill: false,
@@ -233,29 +316,22 @@ class Application {
                         position: 'top',
                         labels: {
                             generateLabels: function(chart) {
-                                // Получаем стандартные метки легенды, которые Chart.js сгенерировал бы
                                 const originalLabels = Chart.defaults.plugins.legend.labels.generateLabels(chart);
                                 const newLabels = [];
 
-                                // Добавляем метки для аналитического решения, Рунге-Кутты и Адамса-Мултона
-                                // Предполагается, что это первые три датасета (индексы 0, 1, 2)
                                 for (let i = 0; i < 3 && i < originalLabels.length; i++) {
                                     newLabels.push(originalLabels[i]);
                                 }
 
-                                // Добавляем кастомную метку "Норматив"
-                                // Используем стили первой линии норматива (upBorder) для внешнего вида в легенде
-                                const upBorderDataset = chart.data.datasets[3]; // upBorder находится по индексу 3
+                                const upBorderDataset = chart.data.datasets[3];
                                 if (upBorderDataset) {
                                     newLabels.push({
-                                        text: 'Норматив', // Текст метки в легенде
-                                        fillStyle: upBorderDataset.backgroundColor, // Цвет заливки (для квадратика)
-                                        strokeStyle: upBorderDataset.borderColor, // Цвет линии (для линии)
-                                        lineWidth: upBorderDataset.borderWidth, // Толщина линии
-                                        lineDash: upBorderDataset.borderDash, // Стиль пунктирной линии
-                                        hidden: false, // Метка не скрыта
-                                        // datasetIndex: -1 // Указываем, что эта метка не привязана к конкретному датасету
-                                                              // (чтобы клик по ней не скрывал конкретную линию)
+                                        text: 'Норматив',
+                                        fillStyle: upBorderDataset.backgroundColor,
+                                        strokeStyle: upBorderDataset.borderColor,
+                                        lineWidth: upBorderDataset.borderWidth,
+                                        lineDash: upBorderDataset.borderDash,
+                                        hidden: false
                                     });
                                 }
                                 return newLabels;
@@ -265,7 +341,6 @@ class Application {
                     tooltip: {
                         callbacks: {
                             label: function(context) {
-                                // Модифицируем подсказку, чтобы для линий норматива было понятное название
                                 if (context.datasetIndex === 3) {
                                     return `Верхний норматив: ${context.parsed.y.toFixed(6)} м`;
                                 } else if (context.datasetIndex === 4) {

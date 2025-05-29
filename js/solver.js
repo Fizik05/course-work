@@ -5,8 +5,11 @@ import { AnalyticalSolution } from './analytical-solution.js';
 
 export class Solver {
     static solve(params) {
+        // Фиксированный коэффициент затухания
+        const zeta = 0.01;
+        
         // Вычисляем коэффициент демпфирования
-        const b = 2 * params.dampingRatio * Math.sqrt(params.k * params.m);
+        const b = 2 * zeta * Math.sqrt(params.k * params.m);
         
         // Создаем уравнение
         const equation = new DifferentialEquation(
@@ -49,9 +52,7 @@ export class Solver {
     
     static compareResults(analyticalSolution, rk5Solution, amSolution, precision) {
         // Находим значение в середине временного промежутка
-        // const midIndex = Math.floor(analyticalSolution.length / 2);
-        const midIndex = 600;
-        // const midIndex = rk5Solution.length - 2
+        const midIndex = Math.min(600, Math.floor(analyticalSolution.length / 2));
         
         const analyticalValue = analyticalSolution[midIndex][1][0];
         const rk5Value = rk5Solution[midIndex][1][0];

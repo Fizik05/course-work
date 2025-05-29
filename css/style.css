@@ -95,7 +95,7 @@ label {
     color: #495057;
 }
 
-input[type="number"] {
+input[type="number"], .bridge-select {
     width: 100%;
     padding: 10px;
     border: 2px solid #ced4da;
@@ -104,10 +104,34 @@ input[type="number"] {
     transition: border-color 0.3s ease;
 }
 
-input[type="number"]:focus {
+input[type="number"]:focus, .bridge-select:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+.readonly-input {
+    background-color: #f8f9fa !important;
+    color: #6c757d !important;
+    cursor: not-allowed;
+}
+
+.bridge-select {
+    background-color: white;
+    cursor: pointer;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+.bridge-select option {
+    padding: 8px;
+    font-size: 0.95rem;
+}
+
+.validation-message {
+    margin-top: 5px;
+    font-size: 0.85rem;
+    color: #dc3545;
+    min-height: 16px;
 }
 
 .calculated-params {
@@ -139,7 +163,7 @@ input[type="number"]:focus {
     letter-spacing: 1px;
 }
 
-.solve-button:hover {
+.solve-button:hover:not(:disabled) {
     transform: translateY(-2px);
     box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
 }
@@ -148,8 +172,34 @@ input[type="number"]:focus {
     transform: translateY(0);
 }
 
+.solve-button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
 .results {
     margin-top: 30px;
+}
+
+.normative-info {
+    background: #fff3cd;
+    border: 1px solid #ffeaa7;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 25px;
+    border-left: 4px solid #f39c12;
+}
+
+.normative-info h3 {
+    color: #856404;
+    margin-bottom: 10px;
+}
+
+.normative-info p {
+    margin-bottom: 8px;
+    color: #856404;
 }
 
 .comparison-table {
@@ -192,10 +242,44 @@ tr:hover td {
     padding: 20px;
     border-radius: 10px;
     box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    margin-bottom: 30px;
 }
 
 #solutionChart {
     max-height: 400px;
+}
+
+.recommendations {
+    background: #f8d7da;
+    border: 1px solid #f5c6cb;
+    border-radius: 10px;
+    padding: 20px;
+    margin-top: 25px;
+    border-left: 4px solid #dc3545;
+}
+
+.recommendations h3 {
+    color: #721c24;
+    margin-bottom: 15px;
+}
+
+.recommendation-content p {
+    margin-bottom: 10px;
+    color: #721c24;
+}
+
+.recommendation-content ul {
+    margin-left: 20px;
+    margin-bottom: 15px;
+}
+
+.recommendation-content li {
+    margin-bottom: 8px;
+    color: #721c24;
+}
+
+.recommendation-content strong {
+    font-weight: 600;
 }
 
 @media (max-width: 768px) {
@@ -211,6 +295,10 @@ tr:hover td {
     .container {
         margin: 10px;
         padding: 15px;
+    }
+
+    .bridge-select {
+        font-size: 0.9rem;
     }
 }
 

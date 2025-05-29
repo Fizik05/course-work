@@ -31,43 +31,50 @@
                     <h3>Физические параметры</h3>
                     <div class="input-group">
                         <label for="mass">Масса m (кг):</label>
-                        <input type="number" id="mass" value="180000" step="1000">
+                        <input type="number" id="mass" value="180000" step="1000" min="2000" max="200000">
+                        <div class="validation-message" id="mass-validation"></div>
                     </div>
                     <div class="input-group">
-                        <label for="stiffness">Жесткость k (Н/м):</label>
-                        <input type="number" id="stiffness" value="5500000" step="10000">
-                    </div>
-                    <div class="input-group">
-                        <label for="damping-ratio">Коэффициент затухания ζ:</label>
-                        <input type="number" id="damping-ratio" value="0.01" step="0.001">
+                        <label for="bridge-type">Тип мостовой конструкции:</label>
+                        <select id="bridge-type" class="bridge-select">
+                            <option value="5500000">Железобетонный балочный (k = 5,500,000 Н/м)</option>
+                            <option value="8000000">Стальной балочный (k = 8,000,000 Н/м)</option>
+                            <option value="12000000">Вантовый (k = 12,000,000 Н/м)</option>
+                            <option value="7000000">Арочный железобетонный (k = 7,000,000 Н/м)</option>
+                            <option value="9500000">Арочный стальной (k = 9,500,000 Н/м)</option>
+                        </select>
                     </div>
                     <div class="input-group">
                         <label for="force-amplitude">Амплитуда силы F₀ (Н):</label>
-                        <input type="number" id="force-amplitude" value="130000" step="1000">
+                        <input type="number" id="force-amplitude" value="130000" step="1000" min="0">
+                        <div class="validation-message" id="force-validation"></div>
                     </div>
                     <div class="input-group">
                         <label for="frequency">Частота ωf (рад/с):</label>
-                        <input type="number" id="frequency" value="6.1" step="0.1">
+                        <input type="number" id="frequency" value="6.1" readonly class="readonly-input">
                     </div>
                 </div>
 
                 <div class="param-group">
                     <h3>Численные параметры</h3>
                     <div class="input-group">
-                        <label for="t-start">Начальное время t₀:</label>
-                        <input type="number" id="t-start" value="0" step="0.1">
+                        <label for="t-start">Начальное время t₀ (с):</label>
+                        <input type="number" id="t-start" value="0" readonly class="readonly-input">
                     </div>
                     <div class="input-group">
-                        <label for="t-end">Конечное время t₁:</label>
-                        <input type="number" id="t-end" value="10" step="0.5">
+                        <label for="t-end">Конечное время t₁ (с):</label>
+                        <input type="number" id="t-end" value="10" step="0.5" min="0.1">
+                        <div class="validation-message" id="t-end-validation"></div>
                     </div>
                     <div class="input-group">
                         <label for="step">Шаг по времени h:</label>
-                        <input type="number" id="step" value="0.01" step="0.001">
+                        <input type="number" id="step" value="0.01" step="0.001" min="0.001">
+                        <div class="validation-message" id="step-validation"></div>
                     </div>
                     <div class="input-group">
                         <label for="precision">Точность отображения (кол-во знаков после запятой):</label>
-                        <input type="number" id="precision" value="5" min="1" max="10">
+                        <input type="number" id="precision" value="5" min="0" max="10">
+                        <div class="validation-message" id="precision-validation"></div>
                     </div>
                 </div>
             </div>
@@ -76,10 +83,12 @@
                 <h3>Вычисленные параметры</h3>
                 <div class="calc-param">
                     <span>Коэффициент демпфирования b: </span>
-                    <span id="damping-coeff"></span> </div>
+                    <span id="damping-coeff"></span> Н·с/м
+                </div>
                 <div class="calc-param">
                     <span>Итоговое дифференциальное уравнение: </span>
-                    <span id="normalized-eq"></span> </div>
+                    <span id="normalized-eq"></span>
+                </div>
             </div>
 
             <button id="solve-btn" class="solve-button">Решить задачу</button>
@@ -87,6 +96,12 @@
 
         <section class="results" id="results" style="display: none;">
             <h2>Результаты</h2>
+            
+            <div class="normative-info">
+                <h3>Нормативная информация</h3>
+                <p>Расчет выполнен в соответствии с требованиями <strong>СП 35.13330.2011 "Мосты и трубы. Актуализированная редакция СНиП 2.05.03-84*"</strong>.</p>
+                <p>Согласно нормативу, максимальная амплитуда вертикальных колебаний мостовых конструкций не должна превышать <strong>±40 мм (±0.04 м)</strong> для обеспечения комфортных условий эксплуатации и безопасности движения.</p>
+            </div>
             
             <div class="comparison-table">
                 <h3>Сравнение результатов методов</h3>
@@ -106,6 +121,21 @@
             <div class="chart-container">
                 <h3>График смещения x(t)</h3>
                 <canvas id="solutionChart"></canvas>
+            </div>
+
+            <div class="recommendations" id="recommendations" style="display: none;">
+                <h3>Рекомендации по снижению колебаний</h3>
+                <div class="recommendation-content">
+                    <p><strong>Внимание!</strong> Расчетные значения амплитуды колебаний превышают нормативные требования СП 35.13330.2011.</p>
+                    <p><strong>Рекомендуется применение дополнительных демпферов:</strong></p>
+                    <ul>
+                        <li><strong>Вязкие демпферы</strong> - эффективны для гашения резонансных колебаний при ветровых нагрузках</li>
+                        <li><strong>Настроенные массовые демпферы (TMD)</strong> - настраиваются на частоту собственных колебаний моста</li>
+                        <li><strong>Фрикционные демпферы</strong> - обеспечивают постоянное затухание при различных амплитудах колебаний</li>
+                        <li><strong>Гидравлические демпферы</strong> - эффективны при больших амплитудах колебаний</li>
+                    </ul>
+                    <p>Выбор типа демпфера должен осуществляться на основе детального динамического анализа конструкции с учетом эксплуатационных нагрузок.</p>
+                </div>
             </div>
         </section>
     </div>
