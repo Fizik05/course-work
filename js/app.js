@@ -4,6 +4,7 @@ import { Solver } from './solver.js';
 class Application {
     constructor() {
         this.chart = null;
+        this.maxIterations = 100000;
         this.initializeEventListeners();
         this.updateCalculatedParams();
     }
@@ -60,6 +61,9 @@ class Application {
         if (isNaN(tEnd) || tEnd <= 0) {
             tEndValidation.textContent = 'Конечное время должно быть положительным';
             isValid = false;
+        } else if (tEnd > 1000) {
+            tEndValidation.textContent = 'Конечное время не должно превышать 1000 секунд';
+            isValid = false;
         } else {
             tEndValidation.textContent = '';
         }
@@ -68,14 +72,29 @@ class Application {
         const step = parseFloat(document.getElementById('step').value);
         const stepValidation = document.getElementById('step-validation');
         const maxStep = (tEnd - 0) / 10;
+        const minStep = (tEnd - 0) / this.maxIterations;
+        
         if (isNaN(step) || step <= 0) {
             stepValidation.textContent = 'Шаг времени должен быть положительным';
             isValid = false;
         } else if (step >= maxStep) {
             stepValidation.textContent = `Шаг должен быть меньше ${maxStep.toFixed(4)}`;
             isValid = false;
+        } else if (step < minStep) {
+            stepValidation.textContent = `Шаг слишком мал. Минимальный шаг: ${minStep.toFixed(6)}`;
+            isValid = false;
         } else {
-            stepValidation.textContent = '';
+            const totalIterations = Math.ceil((tEnd - 0) / step);
+            if (totalIterations > this.maxIterations) {
+                stepValidation.textContent = `Слишком много итераций (${totalIterations.toLocaleString()}). Увеличьте шаг или уменьшите время.`;
+                isValid = false;
+            } else if (totalIterations > this.maxIterations * 0.8) {
+                stepValidation.textContent = `Предупреждение: большое количество итераций (${totalIterations.toLocaleString()}). Вычисления могут занять время.`;
+                stepValidation.style.color = '#ff9800';
+            } else {
+                stepValidation.textContent = '';
+                stepValidation.style.color = '#dc3545';
+            }
         }
         
         // Валидация точности
@@ -119,27 +138,52 @@ class Application {
         const params = this.getParameters();
         const solveBtn = document.getElementById('solve-btn');
         
+        // Дополнительная проверка перед вычислениями
+        const totalIterations = Math.ceil((params.t1 - params.t0) / params.h);
+        if (totalIterations > this.maxIterations) {
+            alert(`Слишком много итераций (${totalIterations.toLocaleString()}). Пожалуйста, увеличьте шаг времени или уменьшите конечное время.`);
+            return;
+        }
+        
+        // Предупреждение для больших вычислений
+        if (totalIterations > 50000) {
+            const proceed = confirm(
+                `Вычисления займут ${totalIterations.toLocaleString()} итераций и могут занять некоторое время. Продолжить?`
+            );
+            if (!proceed) {
+                return;
+            }
+        }
+        
         solveBtn.textContent = 'Вычисление...';
         solveBtn.disabled = true;
         
-        try {
-            const results = Solver.solve(params);
-            
-            const comparison = Solver.compareResults(
-                results.analytical,
-                results.rk5, 
-                results.adamsMoulton, 
-                params.precision
-            );
-            
-            this.displayResults(results, comparison, params.precision);
-            
-        } catch (error) {
-            alert('Ошибка при решении: ' + error.message);
-        } finally {
-            solveBtn.textContent = 'Решить задачу';
-            solveBtn.disabled = false;
-        }
+        // Используем setTimeout для неблокирующих вычислений
+        setTimeout(() => {
+            try {
+                const startTime = performance.now();
+                const results = Solver.solve(params);
+                const endTime = performance.now();
+                
+                console.log(`Вычисления заняли ${(endTime - startTime).toFixed(2)} мс`);
+                
+                const comparison = Solver.compareResults(
+                    results.analytical,
+                    results.rk5, 
+                    results.adamsMoulton, 
+                    params.precision
+                );
+                
+                this.displayResults(results, comparison, params.precision);
+                
+            } catch (error) {
+                console.error('Ошибка при решении:', error);
+                alert('Ошибка при решении: ' + error.message);
+            } finally {
+                solveBtn.textContent = 'Решить задачу';
+                solveBtn.disabled = false;
+            }
+        }, 100);
     }
     
     displayResults(results, comparison, precision) {
@@ -198,7 +242,10 @@ class Application {
             this.chart.destroy();
         }
 
-        const step = Math.max(1, Math.floor(analyticalSolution.length / 1000));
+        // Адаптивное прореживание данных для больших наборов
+        const maxPoints = 2000;
+        const totalPoints = analyticalSolution.length;
+        const step = Math.max(1, Math.floor(totalPoints / maxPoints));
         
         const analyticalData = analyticalSolution
             .filter((_, index) => index % step === 0)
